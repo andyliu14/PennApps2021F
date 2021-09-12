@@ -41,7 +41,7 @@ class ethereumClient:
         return acct
 
     def deploy_voting_contract(self):
-        contract_source_path = '/home/localaccount/Desktop/Pennapps/IKMR/solidity/contracts/vote.sol'
+        contract_source_path = '/solidity/contracts/vote.sol'
         compiled_sol = self.compile_source_file(contract_source_path)
         contract_id, contract_interface = compiled_sol.popitem()
         address = self.deploy_contract(self.w3, contract_interface)
