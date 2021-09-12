@@ -118,13 +118,15 @@ class firebaseClient:
         self.ref = db.reference("/Files/" + str(fileId))
         return self.ref.get()
 
-    def addUser(self, name, userId, countryId, permissionLevel):
+    def addUser(self, name, userId, countryId, accountAddr, accountKey, permissionLevel):
         self.ref = db.reference("/Users/" + str(userId))
         userJson = {
             "UserId": str(userId),
             "Name": name,
             "PermissionLevel": permissionLevel,
-            "CountryId": str(countryId)
+            "CountryId": str(countryId),
+            "AccountAddress": str(accountAddr),
+            "AccountKey": str(accountKey)
         }
         self.ref.set(userJson)
 
@@ -150,8 +152,39 @@ class firebaseClient:
         return userId
     def getClient(self):
         return self.client
-
     
+    def addContract(self, name, address, abi, fileCID, countryId, fileType, ratifiedTime = None, expiredTime = None):
+        contractId = uuid.uuid4()
+        self.ref = db.reference("/Contracts/" + str(contractId))
+        contractJson = {
+            "Addresss": address,
+            "Abi": str(abi),
+            "CID": str(fileCID),
+            "Name": name,
+            "CountryId": str(countryId),
+            "TimeStampCreated": str(datetime.utcnow()),
+            "TimeStampExpired": expiredTime,
+            "TimeStampRatified": ratifiedTime,
+            "FileType": fileType
+        }
+
+        self.addCountrySubId(str(contractId), str(countryId), "ContractIds")
+        self.ref.set(contractJson)
+        return str(contractId)
+    
+    def deleteContract(self, contractId):
+        self.ref = db.reference("/Contracts/" + str(contractId))
+        self.ref.set({})
+        return str(contractId)
+
+    def getContractIdByName(self, contractName):
+        self.ref = db.reference("/Contracts")
+        id = list(self.ref.order_by_child("ContractName").equal_to(contractName).limit_to_first(1).get().keys())[0]
+        return id
+
+    def getContractById(self, contractId):
+        self.ref = db.reference("/Contracts/" + str(contractId))
+        return self.ref.get()
 
 
 

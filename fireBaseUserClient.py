@@ -17,7 +17,7 @@ class fireBaseUserClient:
         uid = decoded_token['uid']
         return uid
 
-    def createUser(self, email, password, name, countryName, permissionLevel):
+    def createUser(self, email, password, name, countryName, accountAddr, accountKey, permissionLevel):
 
         countryId = self.client.getCountryIdByName(countryName)
        
@@ -30,7 +30,7 @@ class fireBaseUserClient:
         )
         
     
-        self.client.addUser(self, name, userId, countryId, permissionLevel)
+        self.client.addUser(self, name, userId, countryId, str(accountAddr), str(accountKey), permissionLevel)
         return userId
 
     

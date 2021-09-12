@@ -9,7 +9,10 @@ class IpfsClient:
         hash = self._client.add(file, recursive=True)['Hash']
         self._client.pin.ls(type='all')
         return hash
-
+    def add_temp_file(self, file):
+        hash = self._client.add(file, recursive=True)['Hash']
+        self._client.pin.ls(type='all')
+        return hash
     def retrieve_file(self, hash):
         return self._client.cat(hash)
     
