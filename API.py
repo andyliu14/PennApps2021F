@@ -9,15 +9,18 @@ from datetime import datetime
 import sys
 from eth_tester import PyEVMBackend
 from ethereumClient import ethereumClient
-app = Flask(__name__)
+from io import BytesIO
+from flask_cors import CORS
 
+app = Flask(__name__)
+CORS(app)
 connect_addr = '/ip4/127.0.0.1/tcp/5001'
 db_url = 'https://ikmr-ce98c-default-rtdb.firebaseio.com/'
 connect = ''
 ipfs_client = IpfsClient(connect_addr)
 fb_client = firebaseClient('creds.json', db_url)
 actual_client = fb_client.getClient()
-user_client = fireBaseUserClient(actual_client)
+user_client = fireBaseUserClient(fb_client)
 standard_format = '%Y-%m-%d %H:%M:%S.%f'
 eth_client = ethereumClient(EthereumTesterProvider(PyEVMBackend()))
 
@@ -27,28 +30,28 @@ def upload_file():
     file = request.files['file']
     file_name = request.form['fileName']
     country_name = request.form['countryName']
-    user_token = request.form['token']
+    #user_token = request.form['token']
     file_type = request.form['fileType']
     ratifiedTime = request.form.get('ratifiedTime')
     expiredTime = request.form.get('expiredTime')
     
-    user_id = user_client.getCurrentUserId(user_token)
-    current_user = fb_client.getUserById(user_id)
-    currentPermissionLevel = current_user["PermissionLevel"]
-    currentPermissionLevel = "SuperAdmin"
-    isAuthenticated = True
+    # user_id = user_client.getCurrentUserId(user_token)
+    # current_user = fb_client.getUserById(user_id)
+    # currentPermissionLevel = current_user["PermissionLevel"]
+    # currentPermissionLevel = "SuperAdmin"
+    # isAuthenticated = True
     countryId = fb_client.getCountryIdByName(country_name)
-    if(currentPermissionLevel.equals("SuperAdmin")):
-        isAuthenticated = True
-    elif (currentPermissionLevel.equals("Admin")):
+    # if(currentPermissionLevel.equals("SuperAdmin")):
+    #     isAuthenticated = True
+    # elif (currentPermissionLevel.equals("Admin")):
         
-        isAuthenticated = (current_user["CountryId"] == countryId)
-    else:
-        return json.dumps({'success':False}), 401, {'ContentType':'application/json'} 
+    #     isAuthenticated = (current_user["CountryId"] == countryId)
+    # else:
+    #     return json.dumps({'success':False}), 401, {'ContentType':'application/json'} 
     
 
-    if(not isAuthenticated):
-        return json.dumps({'success':False}), 401, {'ContentType':'application/json'} 
+    # if(not isAuthenticated):
+    #     return json.dumps({'success':False}), 401, {'ContentType':'application/json'} 
 
 
     cid = ipfs_client.add_file(file)
@@ -57,9 +60,14 @@ def upload_file():
 
     return json.dumps({'success':True}), 200, {'ContentType':'application/json'} 
 
-@app.route('/api/v1/files/deleteFile', methods = ['Delete'])
+@app.route('/api/v1/files/deleteFile', methods = ['Get'])
 def delete_file():
-    return
+    print("delete file called")
+    country_id = fb_client.initCountry("United Nations")
+    id = user_client.createUser('superuser@gmail.com', 'superuser123!', 'Super Admin', 'United Nations', '', '', 'SuperAdmin')
+    return str(id)
+
+
 
 @app.route('/api/v1/files/listFiles', methods = ['Get'])
 def list_files():
@@ -72,7 +80,7 @@ def list_files():
         return Response(status=200)
     print(country["FileIds"])
     
-    fileIds = country["FileIds"].values()
+    fileIds = country["FileIds"]
     print(fileIds)
     fileList = []
     for id in fileIds:
@@ -131,16 +139,20 @@ def get_file():
     file_name = request.args.get('fileName')
     fileId = fb_client.getFileIdByName(file_name)
     file = fb_client.getFileById(fileId)
-    cid = file["cid"]
+    cid = file["CID"]
     file_data = ipfs_client.retrieve_file(cid)
-    return send_file(file_data, as_attachment = False)
+    return send_file(BytesIO(file_data), as_attachment = False, mimetype = 'pdf', download_name = file["FileName"])
 
 
 @app.route('/api/v1/countries/getCountries', methods = ['Get'])
 def get_countries():
     allCountriesData = fb_client.getAllCountries()
+    print(allCountriesData)
+    out = []
+    for k, val in allCountriesData.items():
+        out.append(val["CountryName"])
     response = app.response_class(
-            response=json.dumps(allCountriesData),
+            response=json.dumps(out),
             status=200,
             mimetype='application/json'
             )
@@ -254,6 +266,18 @@ def list_users():
         )
     return response
 
+@app.route('/api/v1/users/getUserCountry', methods = ['Get'])
+def get_userCountry():
+    user_token = request.args.get('token')
+    print(user_token)
+    user_id = user_client.getCurrentUserId(user_token)
+    print(user_id)
+    current_user = fb_client.getUserById(user_id)
+    print(current_user)
+    country_id = current_user["CountryId"]
+    country = fb_client.getCountryById(country_id)
+    return country["CountryName"]
+
 @app.route('/api/v1/voting/initializeVote', methods = ['Post'])
 def initialize_vote():
     file = request.files['file']
@@ -314,7 +338,7 @@ def get_proposed_file():
     file_data = ipfs_client.retrieve_file(contract["CID"])
     return send_file(file_data, as_attachment = False)
 
-@app.route('/api/v1/voting/vote', methods = ['Post'])
+@app.route('/api/v1/voting/vote', methods = ['Post','Get'])
 def vote():
     contractName = request.args.get('ContractName')
     contractId = fb_client.getContractIdByName(contractName)
@@ -383,4 +407,4 @@ def list_proposals():
         mimetype='application/json'
         )
     return response
-app.run()
+app.run(host = '0.0.0.0', port = 4901)

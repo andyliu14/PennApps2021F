@@ -30,7 +30,7 @@ class fireBaseUserClient:
         )
         
     
-        self.client.addUser(self, name, userId, countryId, str(accountAddr), str(accountKey), permissionLevel)
+        self.client.addUser(name, userId, countryId, str(accountAddr), str(accountKey), permissionLevel)
         return userId
 
     
@@ -47,7 +47,6 @@ class fireBaseUserClient:
             password = password,
             display_name = name
         )
-        self.client.addUser(name, userId, unId, "SuperAdmin")
         return userId
 
 
